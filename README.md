@@ -1,5 +1,6 @@
 # Microservices Product Catalogue Application
 
+
 A complete microservices-based e-commerce product catalogue system demonstrating modern cloud-native architecture patterns. This full-stack application features multiple frontend applications, polyglot backend services, containerization, and API gateway implementation.
 
 ## 🏗️ Architecture Overview
