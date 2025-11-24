@@ -15,7 +15,7 @@ const sendEmail = async (options) => {
 
   // 2) Define email options (like from, to, subject, email content)
   const mailOpts = {
-    from: `Microservices Product Catalogue <${process.env.EMAIL_USER}>`,
+    from: `${process.env.APP_NAME} <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
     html: options.message,
