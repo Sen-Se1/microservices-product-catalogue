@@ -2,10 +2,10 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
-const createToken = require("../utils/createToken");
+const createToken = require("../utils/createJWT");
 const ApiError = require("../utils/apiError");
 const User = require("../models/userModel");
-const createVerificationToken = require("../utils/createVerificationToken");
+const { generateToken, hashToken } = require("../utils/verificationToken");
 
 // @desc    Register
 // @route   Post /api/v1/auth/register
@@ -33,13 +33,13 @@ exports.register = asyncHandler(async (req, res, next) => {
     },
   });
 
-  const { token, hashedToken } = createVerificationToken();
+  const { rawToken, hashedToken } = generateToken();
 
   user.emailVerificationToken = hashedToken;
   user.emailVerificationTokenExpires = Date.now() + 5 * 60 * 1000; // 5 min
   await user.save({ validateBeforeSave: false });
 
-  const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${token}`;
+  const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${rawToken}`;
 
   await sendEmail({
     email: user.email,
@@ -57,10 +57,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/auth/verify-email/:token
 // @access  Public
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(req.params.token)
-    .digest("hex");
+  const hashedToken =  hashToken(req.params.token);
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -92,14 +89,14 @@ exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
     return next(new ApiError("Invalid request", 400));
   }
 
-  const { token, hashedToken } = createEmailVerificationToken();
+  const { rawToken, hashedToken } = generateToken();
 
   user.emailVerificationToken = hashedToken;
   user.emailVerificationTokenExpires = Date.now() + 10 * 60 * 1000;
 
   await user.save({ validateBeforeSave: false });
 
-  const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${token}`;
+  const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${rawToken}`;
 
   await sendEmail({
     email: user.email,
@@ -181,7 +178,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     );
   }
 
-  const { token, hashedToken } = createVerificationToken();
+  const { rawToken, hashedToken } = generateToken();
 
   user.passwordResetToken = hashedToken;
   user.passwordResetTokenExpires = Date.now() + 5 * 60 * 1000;
@@ -196,7 +193,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
   const frontendUrl = frontendUrls[client] || frontendUrls.public;
 
-  const resetUrl = `${frontendUrl}/reset-password/${token}`;
+  const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
 
   const message = `Forgot your password? Click here to reset: ${resetUrl}`;
 
@@ -223,10 +220,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 // @route   PUT /auth/resetPassword/:token
 // @access  Public
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  const hashedResetToken = crypto
-    .createHash("sha256")
-    .update(req.params.token)
-    .digest("hex");
+  const hashedResetToken = hashToken(req.params.token)
 
   const user = await User.findOne({
     passwordResetToken: hashedResetToken,
