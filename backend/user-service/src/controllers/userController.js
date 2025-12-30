@@ -1,15 +1,18 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-const sendEmail = require("../utils/sendEmail");
+const Email = require("../utils/emailTemplate");
 const createToken = require("../utils/createJWT");
 const ApiError = require("../utils/apiError");
 const User = require("../models/userModel");
 const { generateToken, hashToken } = require("../utils/verificationToken");
 
-// @desc    Register
-// @route   Post /api/v1/auth/register
-// @access  Public
+
+/**
+ * @desc    Register
+ * @route   Post /api/v1/auth/register
+ * @access  Public
+ */
 exports.register = asyncHandler(async (req, res, next) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
@@ -40,12 +43,7 @@ exports.register = asyncHandler(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${rawToken}`;
-
-  await sendEmail({
-    email: user.email,
-    subject: "Verify your email",
-    message: `Click to verify your email: ${verifyUrl}`,
-  });
+  await Email.verifyEmail(user, verifyUrl);
 
   res.status(201).json({
     message:
@@ -53,11 +51,13 @@ exports.register = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Verify email
-// @route   PUT /api/v1/auth/verify-email/:token
-// @access  Public
+/**
+ * @desc    Verify email
+ * @route   PUT /api/v1/auth/verify-email/:token
+ * @access  Public
+ */
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
-  const hashedToken =  hashToken(req.params.token);
+  const hashedToken = hashToken(req.params.token);
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -79,9 +79,11 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Resend verification email
-// @route   POST /api/v1/auth/resend-verification-email
-// @access  Public
+/**
+ * @desc    Resend verification email
+ * @route   POST /api/v1/auth/resend-verification-email
+ * @access  Public
+ */
 exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
@@ -92,26 +94,23 @@ exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   const { rawToken, hashedToken } = generateToken();
 
   user.emailVerificationToken = hashedToken;
-  user.emailVerificationTokenExpires = Date.now() + 10 * 60 * 1000;
+  user.emailVerificationTokenExpires = Date.now() + 5 * 60 * 1000;
 
   await user.save({ validateBeforeSave: false });
 
   const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${rawToken}`;
-
-  await sendEmail({
-    email: user.email,
-    subject: "Resend Email Verification",
-    message: `Verify your email: ${verifyUrl}`,
-  });
+  await Email.verifyEmail(user, verifyUrl, "resend");
 
   res.status(200).json({
     message: "Verification email resent",
   });
 });
 
-// @desc    Login
-// @route   POST /api/v1/auth/login
-// @access  Public
+/**
+ * @desc    Login
+ * @route   POST /api/v1/auth/login
+ * @access  Public
+ */
 exports.login = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({
     email: req.body.email,
@@ -139,15 +138,21 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   user.lastLogin = Date.now();
   await user.save();
+  await Email.newLoginDetected(user, {
+    ip: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
   const token = createToken(user._id);
   delete user._doc.password;
 
   res.status(200).json({ data: user, token });
 });
 
-// @desc    Forgot password
-// @route   POST /api/v1/auth/forgotPassword
-// @access  Public
+/**
+ * @desc    Forgot password
+ * @route   POST /api/v1/auth/forgotPassword
+ * @access  Public
+ */
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
@@ -192,17 +197,10 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   };
 
   const frontendUrl = frontendUrls[client] || frontendUrls.public;
-
   const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
 
-  const message = `Forgot your password? Click here to reset: ${resetUrl}`;
-
   try {
-    await sendEmail({
-      email: user.email,
-      subject: "Password Reset Request",
-      message,
-    });
+    await Email.forgotPassword(user, resetUrl);
   } catch (err) {
     user.passwordResetToken = undefined;
     user.passwordResetTokenExpires = undefined;
@@ -216,11 +214,13 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Reset password
-// @route   PUT /auth/resetPassword/:token
-// @access  Public
+/**
+ * @desc    Reset password
+ * @route   PUT /auth/resetPassword/:token
+ * @access  Public
+ */
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  const hashedResetToken = hashToken(req.params.token)
+  const hashedResetToken = hashToken(req.params.token);
 
   const user = await User.findOne({
     passwordResetToken: hashedResetToken,
@@ -259,6 +259,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   user.lastLogin = Date.now();
 
   await user.save({ validateBeforeSave: false });
+  await Email.passwordChanged(user);
 
   const token = createToken(user._id);
 
@@ -271,18 +272,22 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get current user
-// @route   GET /api/v1/auth/me
-// @access  Private
+/**
+ * @desc    Get current user
+ * @route   GET /api/v1/auth/me
+ * @access  Private
+ */  
 exports.getMe = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   delete user._doc.password;
   res.status(200).json({ data: user });
 });
 
-// @desc    Update current user
-// @route   PUT /api/v1/auth/update-me
-// @access  Private
+/**
+ * @desc    Update current user
+ * @route   PUT /api/v1/auth/update-me
+ * @access  Private
+ */
 exports.updateMe = asyncHandler(async (req, res, next) => {
   const filteredBody = {};
   const profileFields = [
@@ -316,9 +321,11 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: updatedUser });
 });
 
-// @desc    Update logged user password
-// @route   PUT /api/v1/auth/update-my-password
-// @access  Private
+/**
+ * @desc    Update logged user password
+ * @route   PUT /api/v1/auth/update-my-password
+ * @access  Private
+ */
 exports.updatePassword = asyncHandler(async (req, res, next) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
@@ -333,17 +340,21 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
   });
 
   const token = createToken(user._id);
+  await Email.passwordChanged(user);
 
   delete user._doc.password;
 
   res.status(200).json({ data: user, token });
 });
 
-// @desc    Delete logged user (deactivate)
-// @route   DELETE /api/v1/auth/delete-me
-// @access  Private
+/**
+ * @desc    Delete logged user (deactivate)
+ * @route   DELETE /api/v1/auth/delete-me
+ * @access  Private
+ */
 exports.deleteMe = asyncHandler(async (req, res, next) => {
   await User.findByIdAndUpdate(req.user._id, { isActive: false });
+  await Email.accountDeactivated(req.user);
 
   res.status(204).json({
     status: "success",
@@ -351,9 +362,11 @@ exports.deleteMe = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get all users (Admin only)
-// @route   GET /api/v1/user
-// @access  Private/Admin
+/**
+ * @desc    Get all users (Admin only)
+ * @route   GET /api/v1/user
+ * @access  Private/Admin
+ */
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
   const users = await User.find();
 
@@ -363,9 +376,11 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get user by ID (Admin only)
-// @route   GET /api/v1/user/:id
-// @access  Private/Admin
+/**
+ * @desc    Get user by ID (Admin only)
+ * @route   GET /api/v1/user/:id
+ * @access  Private/Admin
+ */
 exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
 
@@ -378,9 +393,11 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: user });
 });
 
-// @desc    Update user (Admin only)
-// @route   Patch /api/v1/user/:id
-// @access  Private/Admin
+/**
+ * @desc    Update user (Admin only)
+ * @route   Patch /api/v1/user/:id
+ * @access  Private/Admin
+ */
 exports.updateUser = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
 
@@ -389,7 +406,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       new ApiError(`No user found with that ID : ${req.params.id}`, 404)
     );
   }
-
+  const wasInactive = !user.isActive;
   const allowedFields = ["email", "role", "isActive", "isVerified"];
   const profileFields = [
     "firstName",
@@ -424,13 +441,26 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
 
   await user.save();
 
+  if (req.body.password) {
+    await Email.passwordChanged(user);
+  }
+
+  if (wasInactive && user.isActive) {
+    await Email.accountActivated(user);
+  }
+
+  if (!wasInactive && !user.isActive) {
+    await Email.accountDeactivated(user);
+  }
   delete user._doc.password;
   res.status(200).json({ data: user });
 });
 
-// @desc    Delete user (Admin only) (deactivate)
-// @route   DELETE /api/v1/user/:id 6924a834fe07c99e95fedb9f
-// @access  Private/Admin
+/**
+ * @desc    Delete user (Admin only) (deactivate)
+ * @route   DELETE /api/v1/user/:id 6924a834fe07c99e95fedb9f
+ * @access  Private/Admin
+ */
 exports.deleteUser = asyncHandler(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.params.id, { isActive: false });
 
@@ -443,6 +473,8 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
   if (!user.isActive) {
     return next(new ApiError("This user account is already deactivated.", 400));
   }
+
+  await Email.accountDeactivated(user);
 
   res.status(204).json({
     status: "success",

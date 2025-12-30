@@ -3,7 +3,9 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const User = require("../models/userModel");
 
-// @desc   make sure the user is logged in
+/**
+ * @desc   make sure the user is logged in
+ */
 exports.protect = asyncHandler(async (req, res, next) => {
   let token;
   if (req.headers.authorization || req.headers.Authorization) {
@@ -62,8 +64,10 @@ exports.protect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-// @desc    Authorization (User Permissions)
-// ["admin"]
+/**
+ * @desc   Authorization (User Permissions)
+ * ["admin"] 
+ */
 exports.allowedTo = (...roles) =>
   asyncHandler(async (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -74,7 +78,10 @@ exports.allowedTo = (...roles) =>
     next();
   });
 
-// @desc  Middleware function to check if the user is the owner of the profile
+/**
+ * @desc   Middleware function to check if the user is the owner of the profile
+ */
+// 
 exports.isProfileOwner = asyncHandler((req, res, next) => {
   if (req.user._id.toString() === req.params.id) {
     return next(

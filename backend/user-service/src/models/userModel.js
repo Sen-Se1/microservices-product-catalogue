@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-// User Schema
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -81,7 +80,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Create indexes
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
@@ -89,5 +87,4 @@ userSchema.index({ isActive: 1 });
 // Create model based on the schema
 const User = mongoose.model("User", userSchema);
 
-// Export the model for use in other modules
 module.exports = User;
