@@ -139,7 +139,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     ip: req.ip,
     userAgent: req.headers["user-agent"],
   });
-  const token = createToken(user._id);
+  const token = createToken({ id: user._id, role: user.role });
   delete user._doc.password;
 
   res.status(200).json({ data: user, token });
@@ -258,7 +258,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
   await Email.passwordChanged(user);
 
-  const token = createToken(user._id);
+  const token = createToken({ id: user._id, role: user.role });
 
   delete user._doc.password;
 
@@ -335,7 +335,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
     new: true,
   });
 
-  const token = createToken(user._id);
+  const token = createToken({ id: user._id, role: user.role });
   await Email.passwordChanged(user);
 
   delete user._doc.password;

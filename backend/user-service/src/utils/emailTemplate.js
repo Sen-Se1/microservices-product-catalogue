@@ -18,7 +18,7 @@ exports.verifyEmail = async (user, verifyUrl, action = null) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: center;">Verify Your Email Address</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
         <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">Please verify your email address by clicking the button below. This link will expire in 5 minutes.</p>
         <table role="presentation" style="margin: 0 auto;">
           <tr>
@@ -32,7 +32,7 @@ exports.verifyEmail = async (user, verifyUrl, action = null) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        &copy; 2025 Your App Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>
@@ -55,8 +55,8 @@ exports.forgotPassword = async (user, resetUrl) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: center;">Reset Your Password</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
-        <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">You requested a password reset. Click the button below to set a new password.</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
+        <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">You requested a password reset. Click the button below to set a new password. This link will expire in 5 minutes.</p>
         <table role="presentation" style="margin: 0 auto;">
           <tr>
             <td style="text-align: center;">
@@ -69,7 +69,7 @@ exports.forgotPassword = async (user, resetUrl) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        &copy; 2025 Your App Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>
@@ -92,13 +92,13 @@ exports.passwordChanged = async (user) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: center;">Password Updated</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
         <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">Your account password was recently changed.</p>
         <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #dc3545; font-weight: 500;">If this was not you, please contact support immediately to secure your account.</p>
         <table role="presentation" style="margin: 0 auto;">
           <tr>
             <td style="text-align: center;">
-              <a href="mailto:support@yourapp.com" style="display: inline-block; padding: 12px 24px; background-color: #dc3545; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Contact Support</a>
+              <a href="mailto:mbarkihoussem99@gmail.com" style="display: inline-block; padding: 12px 24px; background-color: #dc3545; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Contact Support</a>
             </td>
           </tr>
         </table>
@@ -106,7 +106,7 @@ exports.passwordChanged = async (user) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        &copy; 2025 Your App Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>
@@ -135,7 +135,7 @@ exports.newLoginDetected = async (user, meta = {}) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: center;">New Login Detected</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
         <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">We detected a new login to your account. If this was you, no action is needed.</p>
         <h2 style="margin: 0 0 15px; font-size: 18px; font-weight: 600; color: #1a1a1a;">Login Details</h2>
         <ul style="margin: 0 0 30px; padding-left: 20px; line-height: 1.6; font-size: 16px; color: #555;">
@@ -151,8 +151,8 @@ exports.newLoginDetected = async (user, meta = {}) => {
         <table role="presentation" style="margin: 0 auto;">
           <tr>
             <td style="text-align: center;">
-              <a href="mailto:support@yourapp.com" style="display: inline-block; padding: 12px 24px; background-color: #dc3545; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px; margin-right: 10px;">Contact Support</a>
-              <a href="https://yourapp.com/change-password" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Change Password</a>
+              <a href="mailto:mbarkihoussem99@gmail.com" style="display: inline-block; padding: 12px 24px; background-color: #dc3545; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px; margin-right: 10px;">Contact Support</a>
+              <a href="${process.env.PUBLIC_FRONTEND_URL}/change-password" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Change Password</a>
             </td>
           </tr>
         </table>
@@ -160,7 +160,7 @@ exports.newLoginDetected = async (user, meta = {}) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        Stay safe,<br>Security Team &copy; 2025 Your App Name. All rights reserved.
+        Stay safe,<br>Security Team &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>
@@ -183,13 +183,13 @@ exports.accountDeactivated = async (user) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #dc3545; text-align: center;">Account Deactivated</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
         <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #555;">Your account has been deactivated.</p>
         <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #007bff; font-weight: 500;">If you believe this is a mistake, please contact support to resolve this.</p>
         <table role="presentation" style="margin: 0 auto;">
           <tr>
             <td style="text-align: center;">
-              <a href="mailto:support@yourapp.com" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Contact Support</a>
+              <a href="mailto:mbarkihoussem99@gmail.com" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Contact Support</a>
             </td>
           </tr>
         </table>
@@ -197,7 +197,7 @@ exports.accountDeactivated = async (user) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        &copy; 2025 Your App Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>
@@ -220,13 +220,13 @@ exports.accountActivated = async (user) => {
     <tr>
       <td style="padding: 40px 30px;">
         <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #28a745; text-align: center;">Account Activated</h1>
-        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello!</p>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Hello! ${user.profile.firstName} ${user.profile.lastName}</p>
         <p style="margin: 0 0 20px; line-height: 1.6; font-size: 16px; color: #555;">Your account has been reactivated by an administrator. You can now log in again.</p>
         <p style="margin: 0 0 30px; line-height: 1.6; font-size: 16px; color: #28a745; font-weight: 500; text-align: center; font-size: 18px;">Welcome back!</p>
         <table role="presentation" style="margin: 0 auto;">
           <tr>
             <td style="text-align: center;">
-              <a href="https://yourapp.com/login" style="display: inline-block; padding: 12px 24px; background-color: #28a745; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Log In Now</a>
+              <a href="${process.env.PUBLIC_FRONTEND_URL}/login" style="display: inline-block; padding: 12px 24px; background-color: #28a745; color: #ffffff; text-decoration: none; font-weight: 500; border-radius: 6px; font-size: 16px;">Log In Now</a>
             </td>
           </tr>
         </table>
@@ -234,7 +234,7 @@ exports.accountActivated = async (user) => {
     </tr>
     <tr>
       <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #6c757d;">
-        &copy; 2025 Your App Name. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${process.env.APP_NAME}. All rights reserved.
       </td>
     </tr>
   </table>

@@ -10,7 +10,7 @@ const User = require("../models/userModel");
  * @access  Private/Admin
  */
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find();
+  const users = await User.find().select('-password');
 
   res.status(200).json({
     results: users.length,

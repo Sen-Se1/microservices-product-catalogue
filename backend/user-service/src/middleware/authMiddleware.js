@@ -8,8 +8,15 @@ const User = require("../models/userModel");
  */
 exports.protect = asyncHandler(async (req, res, next) => {
   let token;
-  if (req.headers.authorization || req.headers.Authorization) {
-    token = req.headers.authorization || req.headers.Authorization;
+  if (
+    (req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")) ||
+    (req.headers.Authorization &&
+      req.headers.Authorization.startsWith("Bearer"))
+  ) {
+    token =
+      req.headers.authorization.split(" ")[1] ||
+      req.headers.Authorization.split(" ")[1];
   }
   if (!token) {
     return next(
@@ -66,7 +73,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
 
 /**
  * @desc   Authorization (User Permissions)
- * ["admin"] 
+ * ["admin"]
  */
 exports.allowedTo = (...roles) =>
   asyncHandler(async (req, res, next) => {
@@ -81,7 +88,7 @@ exports.allowedTo = (...roles) =>
 /**
  * @desc   Middleware function to check if the user is the owner of the profile
  */
-// 
+//
 exports.isProfileOwner = asyncHandler((req, res, next) => {
   if (req.user._id.toString() === req.params.id) {
     return next(
