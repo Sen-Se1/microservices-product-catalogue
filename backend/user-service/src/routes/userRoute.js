@@ -11,26 +11,18 @@ const {
   updateMe,
   updatePassword,
   deleteMe,
-  getUser,
-  getAllUsers,
-  updateUser,
-  deleteUser
 } = require("../controllers/userController");
-const { protect, allowedTo, isProfileOwner } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
-router.post("/auth/register", register);
-router.put("/auth/verify-email/:token", verifyEmail);
-router.post("/auth/resend-verification-email", resendVerificationEmail);
-router.post("/auth/login", login);
-router.post('/auth/forgotPassword', forgotPassword);
-router.put('/auth/resetPassword/:token', resetPassword);
-router.get("/auth/me", protect, getMe);
-router.put("/auth/update-me", protect, updateMe);
-router.put("/auth/update-my-password", protect, updatePassword);
-router.delete("/auth/delete-me", protect, deleteMe);
-router.get("/user", protect, allowedTo("admin"), getAllUsers);
-router.get("/user/:id", protect, allowedTo("admin"), isProfileOwner, getUser);
-router.patch("/user/:id", protect, allowedTo("admin"), isProfileOwner, updateUser);
-router.delete("/user/:id", protect, allowedTo("admin"), isProfileOwner, deleteUser);
+router.post("/register", register);
+router.put("/verify-email/:token", verifyEmail);
+router.post("/resend-verification-email", resendVerificationEmail);
+router.post("/login", login);
+router.post('/forgotPassword', forgotPassword);
+router.put('/resetPassword/:token', resetPassword);
+router.get("/me", protect, getMe);
+router.put("/update-me", protect, updateMe);
+router.put("/update-my-password", protect, updatePassword);
+router.delete("/delete-me", protect, deleteMe);
 
 module.exports = router;
