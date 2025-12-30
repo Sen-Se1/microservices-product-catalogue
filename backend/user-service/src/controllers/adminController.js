@@ -54,7 +54,6 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     "firstName",
     "lastName",
     "phone",
-    "avatar",
     "dateOfBirth",
   ];
   const addressFields = ["street", "city", "state", "country", "zipCode"];

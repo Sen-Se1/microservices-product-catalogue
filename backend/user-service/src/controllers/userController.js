@@ -22,7 +22,6 @@ exports.register = asyncHandler(async (req, res, next) => {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       phone: req.body.phone,
-      avatar: req.body.avatar,
       dateOfBirth: req.body.dateOfBirth,
     },
     address: {
@@ -292,7 +291,6 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
     "firstName",
     "lastName",
     "phone",
-    "avatar",
     "dateOfBirth",
   ];
   const addressFields = ["street", "city", "state", "country", "zipCode"];

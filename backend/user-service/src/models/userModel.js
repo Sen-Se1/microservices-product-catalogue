@@ -11,14 +11,14 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required.'],
-      minlength: [8, 'Password is too short.'],
+      required: [true, "Password is required."],
+      minlength: [8, "Password is too short."],
     },
     role: {
       type: String,
-      required: [true, 'Role is required.'],
-      enum: ['admin', 'user'],
-      default: 'user',
+      required: [true, "Role is required."],
+      enum: ["admin", "user"],
+      default: "user",
       trim: true,
     },
     profile: {
@@ -34,7 +34,12 @@ const userSchema = new mongoose.Schema(
         type: String,
         trim: true,
       },
-      avatar: String,
+      avatar: {
+        type: String,
+        required: [true, "avatar is required."],
+        default: "./media/users/default-avatar.jpg",
+        trim: true,
+      },
       dateOfBirth: Date,
     },
     address: {
@@ -59,13 +64,13 @@ const userSchema = new mongoose.Schema(
         trim: true,
       },
     },
-    isActive: { 
-      type: Boolean, 
-      default: true 
+    isActive: {
+      type: Boolean,
+      default: true,
     },
-    isVerified: { 
-      type: Boolean, 
-      default: false 
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
     lastLogin: Date,
     emailVerificationToken: String,
@@ -76,7 +81,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    versionKey: false
+    versionKey: false,
   }
 );
 
