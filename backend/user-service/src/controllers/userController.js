@@ -1,6 +1,5 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 const Email = require("../utils/emailTemplate");
 const createToken = require("../utils/createJWT");
 const ApiError = require("../utils/apiError");

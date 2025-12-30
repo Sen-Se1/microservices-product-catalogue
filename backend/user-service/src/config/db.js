@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 /**
- * Database connection
+ * @desc    Database connection
  */
 const dbConnection = () => {
   mongoose
