@@ -1,5 +1,13 @@
 fastapi
-uvicorn
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
 redis
+alembic
 pydantic
-python-dotenv
+pydantic-settings
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+python-dateutil
+requests
