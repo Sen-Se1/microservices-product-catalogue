@@ -1,3 +1,16 @@
 fastapi
-uvicorn
-psycopg2
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+alembic
+python-dotenv
+pydantic
+pydantic-settings
+python-multipart
+asyncpg
+slugify
+
+# Development
+pytest
+pytest-asyncio
+httpx
