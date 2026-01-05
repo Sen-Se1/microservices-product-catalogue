@@ -17,7 +17,7 @@ class ProductBase(BaseModel):
     weight_kg: Optional[Decimal] = Field(None, ge=0, le=999.99)
     dimensions_cm: Optional[str] = Field(None, max_length=50)
     image_url: Optional[str] = Field(None, max_length=500)
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    product_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
     
     @validator('price', 'cost')
     def round_decimal(cls, v):
@@ -46,7 +46,7 @@ class ProductUpdate(BaseModel):
     dimensions_cm: Optional[str] = Field(None, max_length=50)
     image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
-    metadata: Optional[Dict[str, Any]] = None
+    product_metadata: Optional[Dict[str, Any]] = None
 
 
 class ProductInDB(ProductBase):

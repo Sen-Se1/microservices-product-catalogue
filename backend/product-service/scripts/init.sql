@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS products (
     dimensions_cm VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
     image_url VARCHAR(500),
-    metadata JSONB DEFAULT '{}',
+    product_metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
