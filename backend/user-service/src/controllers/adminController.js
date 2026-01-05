@@ -10,7 +10,7 @@ const User = require("../models/userModel");
  * @access  Private/Admin
  */
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find().select('-password');
+  const users = await User.find().select("-password");
 
   res.status(200).json({
     results: users.length,
@@ -50,12 +50,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   }
   const wasInactive = !user.isActive;
   const allowedFields = ["email", "role", "isActive", "isVerified"];
-  const profileFields = [
-    "firstName",
-    "lastName",
-    "phone",
-    "dateOfBirth",
-  ];
+  const profileFields = ["firstName", "lastName", "phone", "dateOfBirth"];
   const addressFields = ["street", "city", "state", "country", "zipCode"];
 
   allowedFields.forEach((field) => {
@@ -80,7 +75,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     user.passwordChangedAt = Date.now();
   }
 
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   if (req.body.password) {
     await Email.passwordChanged(user);
@@ -99,7 +94,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
 
 /**
  * @desc    Delete user (Admin only) (deactivate)
- * @route   DELETE /api/v1/user/:id 6924a834fe07c99e95fedb9f
+ * @route   DELETE /api/v1/user/:id
  * @access  Private/Admin
  */
 exports.deleteUser = asyncHandler(async (req, res, next) => {

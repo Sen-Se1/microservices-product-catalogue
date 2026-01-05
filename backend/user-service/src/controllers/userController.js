@@ -85,7 +85,12 @@ exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
   if (!user || user.isVerified) {
-    return next(new ApiError("Invalid request", 400));
+    return next(
+      new ApiError(
+        "If an account exists with that email, a verification link has been sent.",
+        200
+      )
+    );
   }
 
   const { rawToken, hashedToken } = generateToken();
@@ -152,6 +157,14 @@ exports.login = asyncHandler(async (req, res, next) => {
  */
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
+
+  // if (!user || !user.isVerified || !user.isActive) {
+  //   return res.status(200).json({
+  //     status: "success",
+  //     message:
+  //       "If an account exists with that email, a reset link has been sent.",
+  //   });
+  // }
 
   if (!user) {
     return next(
@@ -228,6 +241,12 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     return next(new ApiError("Token is invalid or has expired", 400));
   }
 
+  // if (!user.isVerified || !user.isActive) {
+  //   return next(
+  //     new ApiError("Account is not eligible for password reset.", 403)
+  //   );
+  // }
+
   if (!user.isVerified) {
     return next(
       new ApiError(
@@ -273,7 +292,7 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
  * @desc    Get current user
  * @route   GET /api/v1/auth/me
  * @access  Private
- */  
+ */
 exports.getMe = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   delete user._doc.password;
@@ -287,12 +306,7 @@ exports.getMe = asyncHandler(async (req, res, next) => {
  */
 exports.updateMe = asyncHandler(async (req, res, next) => {
   const filteredBody = {};
-  const profileFields = [
-    "firstName",
-    "lastName",
-    "phone",
-    "dateOfBirth",
-  ];
+  const profileFields = ["firstName", "lastName", "phone", "dateOfBirth"];
   const addressFields = ["street", "city", "state", "country", "zipCode"];
 
   profileFields.forEach((field) => {
@@ -310,9 +324,7 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
   const updatedUser = await User.findByIdAndUpdate(req.user._id, filteredBody, {
     new: true,
     runValidators: true,
-  });
-
-  delete updatedUser._doc.password;
+  }).select("-password");
 
   res.status(200).json({ data: updatedUser });
 });
@@ -323,24 +335,31 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 exports.updatePassword = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+
+  const isMatch = await bcrypt.compare(req.body.currentPassword, user.password);
+  if (!isMatch) {
+    return next(new ApiError("Your current password is incorrect", 401));
+  }
+
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-  const newData = {
-    password: hashedPassword,
-    passwordChangedAt: Date.now(),
-  };
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      password: hashedPassword,
+      passwordChangedAt: Date.now(),
+    },
+    { new: true }
+  );
 
-  const user = await User.findOneAndUpdate({ _id: req.user._id }, newData, {
-    new: true,
-  });
+  const token = createToken({ id: updatedUser._id, role: updatedUser.role });
+  await Email.passwordChanged(updatedUser);
 
-  const token = createToken({ id: user._id, role: user.role });
-  await Email.passwordChanged(user);
+  delete updatedUser._doc.password;
 
-  delete user._doc.password;
-
-  res.status(200).json({ data: user, token });
+  res.status(200).json({ data: updatedUser, token });
 });
 
 /**
