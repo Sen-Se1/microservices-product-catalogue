@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-
+from pathlib import Path
+import os
 
 class Settings(BaseSettings):
     # Database configuration
@@ -31,10 +32,10 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
     
     class Config:
-        env_file = ".env"
+        # Use global .env file from parent directory
+        env_file = str(Path(__file__).parent.parent.parent.parent / ".env")
         case_sensitive = False
         extra = "allow"  # Add this line to allow extra fields
-
 
 @lru_cache()
 def get_settings() -> Settings:

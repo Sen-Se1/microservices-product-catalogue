@@ -124,7 +124,7 @@ class ProductsAPITester:
             "low_stock_threshold": 10,
             "weight_kg": 1.5,
             "dimensions_cm": "10x20x30",
-            "metadata": {
+            "product_metadata": {
                 "color": "black",
                 "material": "plastic",
                 "test": True
@@ -276,7 +276,7 @@ class ProductsAPITester:
             "price": 149.99,
             "stock_quantity": 50,
             "is_active": True,
-            "metadata": {
+            "product_metadata": {
                 "color": "blue",
                 "material": "metal",
                 "updated": True

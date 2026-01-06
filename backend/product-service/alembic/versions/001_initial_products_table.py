@@ -33,7 +33,7 @@ def upgrade() -> None:
         sa.Column('dimensions_cm', sa.String(length=50), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=True),
         sa.Column('image_url', sa.String(length=500), nullable=True),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('product_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('created_at', sa.Text(), nullable=True),
         sa.Column('updated_at', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('id')

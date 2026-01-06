@@ -27,6 +27,12 @@ async def lifespan(app: FastAPI):
         logger.info("Creating database tables...")
         Base.metadata.create_all(bind=sync_engine)
     
+    # Create uploads directory
+    from pathlib import Path
+    upload_dir = Path("uploads/products")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Upload directory ready: {upload_dir.absolute()}")
+    
     logger.info(f"Products Service started on port {settings.service_port}")
     yield
     
@@ -36,7 +42,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Products Service",
-    description="CRUD operations for products management",
+    description="Products management with image uploads in single endpoint",
     version="1.0.0",
     docs_url="/docs" if settings.environment != "production" else None,
     redoc_url="/redoc" if settings.environment != "production" else None,
@@ -51,12 +57,16 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"] if settings.environment == "development" else ["example.com"],
 )
+
+# Increase max request size for file uploads (100MB)
+app.max_request_size = 100 * 1024 * 1024
 
 # Include routers
 app.include_router(api_router)
@@ -67,6 +77,15 @@ async def root():
     return {
         "message": "Products Service API",
         "version": "1.0.0",
+        "endpoints": {
+            "create_product": "POST /api/v1/products (with image uploads)",
+            "get_product": "GET /api/v1/products/{id}",
+            "list_products": "GET /api/v1/products",
+            "update_product": "PUT /api/v1/products/{id}",
+            "delete_product": "DELETE /api/v1/products/{id}",
+            "upload_images": "POST /api/v1/products/{id}/images (add more images)",
+            "get_uploaded_image": "GET /uploads/products/{filename}"
+        },
         "docs": "/docs",
         "health": "/api/v1/health"
     }
