@@ -14,7 +14,6 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
   const skip = (page - 1) * limit;
 
   const users = await User.find()
-    .select("-password")
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
@@ -43,7 +42,7 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
  * @access  Private/Admin
  */
 exports.getUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.id).select("-password");
+  const user = await User.findById(req.params.id);
 
   if (!user)
     return next(
@@ -62,7 +61,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
  * @access  Private/Admin
  */
 exports.updateUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.id).select("-password");
+  const user = await User.findById(req.params.id);
 
   if (!user)
     return next(new ApiError(`No user found with ID: ${req.params.id}`, 404));
@@ -104,6 +103,7 @@ exports.updateUserPassword = asyncHandler(async (req, res, next) => {
   user.password = req.body.password;
   user.passwordChangedAt = Date.now();
   await user.save({ validateBeforeSave: false });
+  user.password = undefined;
   await Email.passwordChanged(user);
 
   res.status(200).json({
@@ -119,6 +119,8 @@ exports.updateUserPassword = asyncHandler(async (req, res, next) => {
  */
 exports.toggleUserStatus = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
+  console.log('user', user);
+  
   if (!user)
     return next(new ApiError(`No user found with ID: ${req.params.id}`, 404));
   user.isActive = !user.isActive;

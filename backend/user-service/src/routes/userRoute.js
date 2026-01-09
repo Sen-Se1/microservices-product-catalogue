@@ -8,6 +8,8 @@ const {
   forgotPasswordValidator,
   resetPasswordValidator,
   updateMeValidator,
+  requestEmailUpdateValidator,
+  verifyEmailUpdateValidator,
   updatePasswordValidator,
 } = require("../utils/validators/userValidator");
 const {
@@ -19,24 +21,55 @@ const {
   resetPassword,
   getMe,
   updateMe,
+  requestEmailUpdate,
+  verifyEmailUpdate,
   updatePassword,
   deleteMe,
 } = require("../controllers/userController");
 const { protect } = require("../middleware/authMiddleware");
+const { authLimiter, forgotPasswordLimiter } = require("../utils/rateLimiter");
 
-router.post("/register", registerValidator, register);
+router.post("/register", authLimiter, registerValidator, register);
 router.put("/verify-email/:token", verifyEmailValidator, verifyEmail);
 router.post(
   "/resend-verification-email",
   resendVerificationValidator,
   resendVerificationEmail
 );
-router.post("/login", loginValidator, login);
-router.post("/forgotPassword", forgotPasswordValidator, forgotPassword);
-router.put("/resetPassword/:token", resetPasswordValidator, resetPassword);
+router.post("/login", authLimiter, loginValidator, login);
+router.post(
+  "/forgotPassword",
+  forgotPasswordLimiter,
+  forgotPasswordValidator,
+  forgotPassword
+);
+router.put(
+  "/resetPassword/:token",
+  forgotPasswordLimiter,
+  resetPasswordValidator,
+  resetPassword
+);
 router.get("/me", protect, getMe);
 router.put("/update-me", protect, updateMeValidator, updateMe);
-router.put("/update-my-password", protect, updatePasswordValidator, updatePassword);
+router.post(
+  "/request-email-update",
+  protect,
+  requestEmailUpdateValidator,
+  requestEmailUpdate
+);
+router.put(
+  "/verify-email-update/:token",
+  protect,
+  authLimiter,
+  verifyEmailUpdateValidator,
+  verifyEmailUpdate
+);
+router.put(
+  "/update-my-password",
+  protect,
+  updatePasswordValidator,
+  updatePassword
+);
 router.patch("/delete-me", protect, deleteMe);
 
 module.exports = router;

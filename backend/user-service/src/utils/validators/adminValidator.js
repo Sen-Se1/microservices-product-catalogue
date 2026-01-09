@@ -2,14 +2,14 @@ const { body, param } = require("express-validator");
 const validator = require("validator");
 const validatorMiddleware = require("../../middleware/validatorMiddleware");
 
-exports.getUserValidator = [
-  param("id").isMongoId().withMessage("The user ID format is invalid."),
+const mongoIdStep = param("id")
+  .isMongoId()
+  .withMessage("The user ID format is invalid.");
 
-  validatorMiddleware,
-];
+exports.getUserValidator = [mongoIdStep, validatorMiddleware];
 
 exports.updateUserAdminValidator = [
-  param("id").isMongoId().withMessage("The user ID format is invalid."),
+  mongoIdStep,
 
   body("email")
     .optional()
@@ -19,26 +19,10 @@ exports.updateUserAdminValidator = [
 
   body("role").optional().isIn(["admin", "user"]).withMessage("Invalid role."),
 
-  body("isActive")
-    .optional()
-    .isBoolean()
-    .withMessage("isActive must be true or false."),
-
   body("isVerified")
     .optional()
     .isBoolean()
     .withMessage("isVerified must be true or false."),
-
-  body("password")
-    .optional()
-    .isStrongPassword({
-      minLength: 8,
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 1,
-    })
-    .withMessage("New password is too weak."),
 
   body(["firstName", "lastName", "city", "state"])
     .optional()
@@ -63,8 +47,32 @@ exports.updateUserAdminValidator = [
   validatorMiddleware,
 ];
 
-exports.deleteUserValidator = [
-  param("id").isMongoId().withMessage("The user ID format is invalid."),
+exports.updateUserPasswordValidator = [
+  mongoIdStep,
+
+  body("password")
+    .notEmpty()
+    .withMessage("New password is required.")
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    })
+    .withMessage("New password is too weak."),
+
+  body("passwordConfirm")
+    .notEmpty()
+    .withMessage("Password confirmation is required.")
+    .custom((val, { req }) => {
+      if (val !== req.body.password) {
+        throw new Error("Passwords do not match.");
+      }
+      return true;
+    }),
 
   validatorMiddleware,
 ];
+
+exports.toggleUserStatusValidator = [mongoIdStep, validatorMiddleware];

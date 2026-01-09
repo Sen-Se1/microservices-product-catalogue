@@ -150,24 +150,6 @@ exports.resendVerificationValidator = [
   validatorMiddleware,
 ];
 
-exports.loginValidator = [
-  body("email")
-    .notEmpty()
-    .withMessage("Adresse e-mail est obligatoire.")
-    .isEmail()
-    .withMessage("Adresse e-mail est invalide."),
-
-  body("password").notEmpty().withMessage("Le mot de passe est obligatoire."),
-
-  body("role")
-    .notEmpty()
-    .withMessage("User role is required.")
-    .isIn(["user", "admin"])
-    .withMessage("Invalid role selected."),
-
-  validatorMiddleware,
-];
-
 exports.forgotPasswordValidator = [
   body("email")
     .trim()
@@ -217,6 +199,24 @@ exports.resetPasswordValidator = [
       }
       return true;
     }),
+
+  validatorMiddleware,
+];
+
+exports.loginValidator = [
+  body("email")
+    .notEmpty()
+    .withMessage("Adresse e-mail est obligatoire.")
+    .isEmail()
+    .withMessage("Adresse e-mail est invalide."),
+
+  body("password").notEmpty().withMessage("Le mot de passe est obligatoire."),
+
+  body("role")
+    .notEmpty()
+    .withMessage("User role is required.")
+    .isIn(["user", "admin"])
+    .withMessage("Invalid role selected."),
 
   validatorMiddleware,
 ];
@@ -296,6 +296,38 @@ exports.updateMeValidator = [
       }
       return true;
     }),
+
+  validatorMiddleware,
+];
+
+exports.requestEmailUpdateValidator = [
+  body("newEmail")
+    .notEmpty()
+    .withMessage("New email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
+
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current password is required to verify your identity"),
+
+  body("client")
+    .optional()
+    .isIn(["admin", "public"])
+    .withMessage("Invalid client source"),
+
+  validatorMiddleware,
+];
+
+exports.verifyEmailUpdateValidator = [
+  param("token")
+    .notEmpty()
+    .withMessage("Verification token is required.")
+    .isHexadecimal()
+    .withMessage("Invalid token format.")
+    .isLength({ min: 64, max: 64 })
+    .withMessage("Invalid token length."),
 
   validatorMiddleware,
 ];

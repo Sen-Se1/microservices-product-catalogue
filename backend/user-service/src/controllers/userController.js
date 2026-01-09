@@ -44,34 +44,6 @@ exports.register = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * @desc    Verify email
- * @route   PUT /api/v1/auth/verify-email/:token
- * @access  Public
- */
-exports.verifyEmail = asyncHandler(async (req, res, next) => {
-  const hashedToken = hashToken(req.params.token);
-
-  const user = await User.findOne({
-    emailVerificationToken: hashedToken,
-    emailVerificationTokenExpires: { $gt: Date.now() },
-  });
-
-  if (!user)
-    return next(new ApiError("Verification token is invalid or expired", 400));
-
-  user.isVerified = true;
-  user.emailVerificationToken = undefined;
-  user.emailVerificationTokenExpires = undefined;
-
-  await user.save({ validateBeforeSave: false });
-
-  res.status(200).json({
-    status: "success",
-    message: "Your email has been verified successfully. You can now log in.",
-  });
-});
-
-/**
  * @desc    Resend verification email
  * @route   POST /api/v1/auth/resend-verification-email
  * @access  Public
@@ -99,6 +71,34 @@ exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     message: "Verification link has been sent to your email.",
+  });
+});
+
+/**
+ * @desc    Verify email
+ * @route   PUT /api/v1/auth/verify-email/:token
+ * @access  Public
+ */
+exports.verifyEmail = asyncHandler(async (req, res, next) => {
+  const hashedToken = hashToken(req.params.token);
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user)
+    return next(new ApiError("Verification token is invalid or expired", 400));
+
+  user.isVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpires = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: "success",
+    message: "Your email has been verified successfully. You can now log in.",
   });
 });
 
@@ -177,16 +177,16 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   user.lastLogin = Date.now();
 
   await user.save();
+  user.password = undefined;
   await Email.passwordChanged(user);
 
   const token = createToken({ id: user._id, role: user.role });
-  user.password = undefined;
 
   res.status(200).json({
     status: "success",
     message: "Your password has been successfully reset",
-    data: user,
     token,
+    data: user,
   });
 });
 
@@ -199,7 +199,7 @@ exports.login = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({
     email: req.body.email,
     role: req.body.role,
-  });
+  }).select("+password");
 
   if (!user || !(await user.comparePassword(req.body.password)))
     return next(new ApiError("Incorrect email or password", 401));
@@ -224,7 +224,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     userAgent: req.headers["user-agent"],
   });
   const token = createToken({ id: user._id, role: user.role });
-  delete user._doc.password;
+  user.password = undefined;
 
   res.status(200).json({ status: "success", data: user, token });
 });
@@ -265,6 +265,74 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: user,
+  });
+});
+
+/**
+ * @desc    Request email change
+ * @route   POST /api/v1/auth/request-email-update
+ * @access  Private
+ */
+exports.requestEmailUpdate = asyncHandler(async (req, res, next) => {
+  const { newEmail, currentPassword, client = "public" } = req.body;
+
+  const user = await User.findById(req.user._id).select("+password");
+
+  if (!(await user.comparePassword(currentPassword)))
+    return next(new ApiError("Incorrect current password", 401));
+
+  const emailExists = await User.findOne({ email: newEmail });
+  if (emailExists) return next(new ApiError("Email is already in use", 400));
+
+  const { rawToken, hashedToken } = generateToken();
+
+  user.pendingEmail = newEmail;
+  user.emailUpdateToken = hashedToken;
+  user.emailUpdateTokenExpires = Date.now() + 5 * 60 * 1000;
+  await user.save({ validateBeforeSave: false });
+  user.password = undefined;
+
+  const frontendUrl =
+    client === "admin"
+      ? process.env.ADMIN_FRONTEND_URL
+      : process.env.PUBLIC_FRONTEND_URL;
+  const verifyUrl = `${frontendUrl}/verify-email-update/${rawToken}`;
+  await Email.sendEmailUpdateLink(newEmail, user, verifyUrl);
+
+  res.status(200).json({
+    status: "success",
+    message: "A verification link has been sent to your new email address.",
+  });
+});
+
+/**
+ * @desc    Confirm and update email
+ * @route   PUT /api/v1/auth/verify-email-update/:token
+ * @access  Private
+ */
+exports.verifyEmailUpdate = asyncHandler(async (req, res, next) => {
+  const hashedToken = hashToken(req.params.token);
+
+  const user = await User.findOne({
+    emailUpdateToken: hashedToken,
+    emailUpdateTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user) return next(new ApiError("Token is invalid or has expired", 400));
+
+  const oldEmail = user.email;
+
+  user.email = user.pendingEmail;
+  user.pendingEmail = undefined;
+  user.emailUpdateToken = undefined;
+  user.emailUpdateTokenExpires = undefined;
+
+  await user.save({ validateBeforeSave: false });
+  await Email.notifyEmailChanged(oldEmail, user);
+
+  res.status(200).json({
+    status: "success",
+    message: "Your email has been updated successfully.",
   });
 });
 

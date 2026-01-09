@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config({ path: "../../.env" });
+const path = require("path");
 const morgan = require("morgan");
 const cors = require("cors");
 const compression = require("compression");
@@ -9,37 +10,32 @@ const { xss } = require("express-xss-sanitizer");
 const ApiError = require("./utils/apiError");
 const globalError = require("./middleware/errorMiddleware");
 const dbConnection = require("./config/db");
-
-// Routes
 const mountRoutes = require("./routes");
+const { globalLimiter } = require("./utils/rateLimiter");
 
-// Connect with db
 dbConnection();
-
-// express app
 const app = express();
 
-// Enable other domains to access your application
+// app.set('trust proxy', 1);
 app.use(cors());
 app.options("*", cors());
-
-// compress all responses
 app.use(compression());
 
-// Middlewares
 app.use(express.json({ limit: "20kb" }));
-
-if (process.env.USER_BACKEND_ENV === "development") {
-  app.use(morgan("dev"));
-  console.log(`mode: ${process.env.USER_BACKEND_ENV}`);
-}
 
 // Data Sanitization :
 // By default, $ and . characters are removed completely from user-supplied input in the following places:
 app.use(mongoSanitize());
 app.use(xss());
 
-// Mount Routes
+if (process.env.USER_BACKEND_ENV === "development") {
+  app.use(morgan("dev"));
+  console.log(`mode: ${process.env.USER_BACKEND_ENV}`);
+}
+
+app.use("/api", globalLimiter);
+app.use("/media", express.static(path.join(__dirname, "media")));
+
 mountRoutes(app);
 
 app.all("*", (req, res, next) => {

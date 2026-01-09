@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   getUserValidator,
   updateUserAdminValidator,
+  updateUserPasswordValidator,
+  toggleUserStatusValidator,
 } = require("../utils/validators/adminValidator");
 const {
   getUser,
@@ -16,6 +18,7 @@ const {
   allowedTo,
   isProfileOwner,
 } = require("../middleware/authMiddleware");
+const { authLimiter } = require("../utils/rateLimiter");
 
 router.get("/user", protect, allowedTo("admin"), getAllUsers);
 router.get(
@@ -30,7 +33,7 @@ router.patch(
   "/user/:id/profile",
   protect,
   allowedTo("admin"),
-  // updateUserAdminValidator,
+  updateUserAdminValidator,
   isProfileOwner,
   updateUser
 );
@@ -38,7 +41,8 @@ router.patch(
   "/user/:id/password",
   protect,
   allowedTo("admin"),
-  // updateUserAdminValidator,
+  authLimiter,
+  updateUserPasswordValidator,
   isProfileOwner,
   updateUserPassword
 );
@@ -46,7 +50,7 @@ router.patch(
   "/user/:id/toggle-status",
   protect,
   allowedTo("admin"),
-  // updateUserAdminValidator,
+  toggleUserStatusValidator,
   isProfileOwner,
   toggleUserStatus
 );

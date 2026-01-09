@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required."],
       minlength: [8, "Password is too short."],
+      select: false,
     },
     role: {
       type: String,
@@ -41,7 +42,7 @@ const userSchema = new mongoose.Schema(
       avatar: {
         type: String,
         required: [true, "avatar is required."],
-        default: "./media/users/default-avatar.jpg",
+        default: "/media/users/default-avatar.jpg",
         trim: true,
       },
       dateOfBirth: Date,
@@ -87,6 +88,9 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetTokenExpires: Date,
+    pendingEmail: { type: String, trim: true, lowercase: true },
+    emailUpdateToken: String,
+    emailUpdateTokenExpires: Date,
   },
   {
     timestamps: true,
@@ -98,8 +102,8 @@ userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 
-/** 
- * @access private 
+/**
+ * @access private
  * @desc Automatically hashes the password before it is saved to MongoDB.
  */
 userSchema.pre("save", async function (next) {
@@ -117,6 +121,16 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+/**
+ * @desc Automatically prepend base URL to avatar path after document initialization
+ */
+userSchema.post("init", function (doc) {
+  if (doc.profile?.avatar && !doc.profile.avatar.startsWith("http")) {
+    const baseUrl = process.env.USER_BACKEND_URL || "http://localhost:8002";
+    doc.profile.avatar = `${baseUrl}${doc.profile.avatar}`;
+  }
+});
 
 // Create model based on the schema
 const User = mongoose.model("User", userSchema);
