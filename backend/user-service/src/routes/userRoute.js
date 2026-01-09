@@ -37,6 +37,6 @@ router.put("/resetPassword/:token", resetPasswordValidator, resetPassword);
 router.get("/me", protect, getMe);
 router.put("/update-me", protect, updateMeValidator, updateMe);
 router.put("/update-my-password", protect, updatePasswordValidator, updatePassword);
-router.delete("/delete-me", protect, deleteMe);
+router.patch("/delete-me", protect, deleteMe);
 
 module.exports = router;

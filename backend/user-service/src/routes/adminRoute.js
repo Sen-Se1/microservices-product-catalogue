@@ -3,13 +3,13 @@ const router = express.Router();
 const {
   getUserValidator,
   updateUserAdminValidator,
-  deleteUserValidator,
 } = require("../utils/validators/adminValidator");
 const {
   getUser,
   getAllUsers,
   updateUser,
-  deleteUser,
+  updateUserPassword,
+  toggleUserStatus,
 } = require("../controllers/adminController");
 const {
   protect,
@@ -27,20 +27,28 @@ router.get(
   getUser
 );
 router.patch(
-  "/user/:id",
+  "/user/:id/profile",
   protect,
   allowedTo("admin"),
-  updateUserAdminValidator,
+  // updateUserAdminValidator,
   isProfileOwner,
   updateUser
 );
-router.delete(
-  "/user/:id",
+router.patch(
+  "/user/:id/password",
   protect,
   allowedTo("admin"),
-  deleteUserValidator,
+  // updateUserAdminValidator,
   isProfileOwner,
-  deleteUser
+  updateUserPassword
+);
+router.patch(
+  "/user/:id/toggle-status",
+  protect,
+  allowedTo("admin"),
+  // updateUserAdminValidator,
+  isProfileOwner,
+  toggleUserStatus
 );
 
 module.exports = router;

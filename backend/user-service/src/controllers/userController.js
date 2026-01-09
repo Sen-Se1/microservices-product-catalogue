@@ -1,5 +1,4 @@
 const asyncHandler = require("express-async-handler");
-const bcrypt = require("bcryptjs");
 const Email = require("../utils/emailTemplate");
 const createToken = require("../utils/createJWT");
 const ApiError = require("../utils/apiError");
@@ -7,17 +6,16 @@ const User = require("../models/userModel");
 const { generateToken, hashToken } = require("../utils/verificationToken");
 
 /**
- * @desc    Register
- * @route   Post /api/v1/auth/register
+ * @desc    Register new user
+ * @route   POST /api/v1/auth/register
  * @access  Public
  */
 exports.register = asyncHandler(async (req, res, next) => {
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(req.body.password, salt);
+  const { rawToken, hashedToken } = generateToken();
 
   const user = await User.create({
     email: req.body.email,
-    password: hashedPassword,
+    password: req.body.password,
     profile: {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
@@ -31,18 +29,15 @@ exports.register = asyncHandler(async (req, res, next) => {
       country: req.body.country,
       zipCode: req.body.zipCode,
     },
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpires: Date.now() + 5 * 60 * 1000, // 5 min
   });
-
-  const { rawToken, hashedToken } = generateToken();
-
-  user.emailVerificationToken = hashedToken;
-  user.emailVerificationTokenExpires = Date.now() + 5 * 60 * 1000; // 5 min
-  await user.save({ validateBeforeSave: false });
 
   const verifyUrl = `${process.env.PUBLIC_FRONTEND_URL}/verify-email/${rawToken}`;
   await Email.verifyEmail(user, verifyUrl);
 
   res.status(201).json({
+    status: "success",
     message:
       "User registered successfully. Please check your email to verify your account.",
   });
@@ -61,9 +56,8 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
     emailVerificationTokenExpires: { $gt: Date.now() },
   });
 
-  if (!user) {
+  if (!user)
     return next(new ApiError("Verification token is invalid or expired", 400));
-  }
 
   user.isVerified = true;
   user.emailVerificationToken = undefined;
@@ -72,7 +66,8 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   res.status(200).json({
-    message: "Email verified successfully",
+    status: "success",
+    message: "Your email has been verified successfully. You can now log in.",
   });
 });
 
@@ -84,14 +79,12 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
 exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
-  if (!user || user.isVerified) {
-    return next(
-      new ApiError(
+  if (!user || user.isVerified)
+    return res.status(200).json({
+      status: "success",
+      message:
         "If an account exists with that email, a verification link has been sent.",
-        200
-      )
-    );
-  }
+    });
 
   const { rawToken, hashedToken } = generateToken();
 
@@ -104,50 +97,9 @@ exports.resendVerificationEmail = asyncHandler(async (req, res, next) => {
   await Email.verifyEmail(user, verifyUrl, "resend");
 
   res.status(200).json({
-    message: "Verification email resent",
+    status: "success",
+    message: "Verification link has been sent to your email.",
   });
-});
-
-/**
- * @desc    Login
- * @route   POST /api/v1/auth/login
- * @access  Public
- */
-exports.login = asyncHandler(async (req, res, next) => {
-  const user = await User.findOne({
-    email: req.body.email,
-    role: req.body.role,
-  });
-
-  if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-    return next(new ApiError("Incorrect email or password", 401));
-  }
-
-  if (!user.isVerified) {
-    return next(
-      new ApiError("Please verify your email before logging in.", 401)
-    );
-  }
-
-  if (!user.isActive) {
-    return next(
-      new ApiError(
-        "Your account has been deactivated. Please contact support.",
-        403
-      )
-    );
-  }
-
-  user.lastLogin = Date.now();
-  await user.save();
-  await Email.newLoginDetected(user, {
-    ip: req.ip,
-    userAgent: req.headers["user-agent"],
-  });
-  const token = createToken({ id: user._id, role: user.role });
-  delete user._doc.password;
-
-  res.status(200).json({ data: user, token });
 });
 
 /**
@@ -156,42 +108,16 @@ exports.login = asyncHandler(async (req, res, next) => {
  * @access  Public
  */
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
+  const { email, client = "public" } = req.body;
 
-  // if (!user || !user.isVerified || !user.isActive) {
-  //   return res.status(200).json({
-  //     status: "success",
-  //     message:
-  //       "If an account exists with that email, a reset link has been sent.",
-  //   });
-  // }
+  const user = await User.findOne({ email });
 
-  if (!user) {
-    return next(
-      new ApiError(
-        `There is no user with this email address: ${req.body.email}`,
-        404
-      )
-    );
-  }
-
-  if (!user.isVerified) {
-    return next(
-      new ApiError(
-        "Please verify your email before resetting your password.",
-        403
-      )
-    );
-  }
-
-  if (!user.isActive) {
-    return next(
-      new ApiError(
-        "Your account has been deactivated. Please contact support.",
-        403
-      )
-    );
-  }
+  if (!user || !user.isVerified || !user.isActive)
+    return res.status(200).json({
+      status: "success",
+      message:
+        "If an account exists with that email, a reset link has been sent.",
+    });
 
   const { rawToken, hashedToken } = generateToken();
 
@@ -200,13 +126,11 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 
   await user.save({ validateBeforeSave: false });
 
-  const client = req.body.client || "public";
-  const frontendUrls = {
-    admin: process.env.ADMIN_FRONTEND_URL || "http://localhost:4200",
-    public: process.env.PUBLIC_FRONTEND_URL || "http://localhost:3000",
-  };
+  const frontendUrl =
+    client === "admin"
+      ? process.env.ADMIN_FRONTEND_URL
+      : process.env.PUBLIC_FRONTEND_URL;
 
-  const frontendUrl = frontendUrls[client] || frontendUrls.public;
   const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
 
   try {
@@ -220,7 +144,9 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   }
 
   res.status(200).json({
-    message: "Password reset link sent to your email",
+    status: "success",
+    message:
+      "If an account exists with that email, a reset link has been sent.",
   });
 });
 
@@ -237,55 +163,70 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     passwordResetTokenExpires: { $gt: Date.now() },
   });
 
-  if (!user) {
-    return next(new ApiError("Token is invalid or has expired", 400));
-  }
+  if (!user) return next(new ApiError("Token is invalid or has expired", 400));
 
-  // if (!user.isVerified || !user.isActive) {
-  //   return next(
-  //     new ApiError("Account is not eligible for password reset.", 403)
-  //   );
-  // }
-
-  if (!user.isVerified) {
+  if (!user.isVerified || !user.isActive)
     return next(
-      new ApiError(
-        "Please verify your email before resetting your password.",
-        403
-      )
+      new ApiError("Account is not eligible for password reset.", 403)
     );
-  }
 
-  if (!user.isActive) {
+  user.password = req.body.password;
+  user.passwordResetToken = undefined;
+  user.passwordResetTokenExpires = undefined;
+  user.passwordChangedAt = Date.now();
+  user.lastLogin = Date.now();
+
+  await user.save();
+  await Email.passwordChanged(user);
+
+  const token = createToken({ id: user._id, role: user.role });
+  user.password = undefined;
+
+  res.status(200).json({
+    status: "success",
+    message: "Your password has been successfully reset",
+    data: user,
+    token,
+  });
+});
+
+/**
+ * @desc    Login
+ * @route   POST /api/v1/auth/login
+ * @access  Public
+ */
+exports.login = asyncHandler(async (req, res, next) => {
+  const user = await User.findOne({
+    email: req.body.email,
+    role: req.body.role,
+  });
+
+  if (!user || !(await user.comparePassword(req.body.password)))
+    return next(new ApiError("Incorrect email or password", 401));
+
+  if (!user.isVerified)
+    return next(
+      new ApiError("Please verify your email before logging in.", 401)
+    );
+
+  if (!user.isActive)
     return next(
       new ApiError(
         "Your account has been deactivated. Please contact support.",
         403
       )
     );
-  }
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(req.body.password, salt);
-
-  user.password = hashedPassword;
-  user.passwordResetToken = undefined;
-  user.passwordResetTokenExpires = undefined;
-  user.passwordChangedAt = Date.now();
   user.lastLogin = Date.now();
-
   await user.save({ validateBeforeSave: false });
-  await Email.passwordChanged(user);
-
+  await Email.newLoginDetected(user, {
+    ip: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
   const token = createToken({ id: user._id, role: user.role });
-
   delete user._doc.password;
 
-  res.status(200).json({
-    data: user,
-    token,
-    message: "Your password has been successfully reset",
-  });
+  res.status(200).json({ status: "success", data: user, token });
 });
 
 /**
@@ -294,39 +235,37 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 exports.getMe = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user._id);
-  delete user._doc.password;
-  res.status(200).json({ data: user });
+  res.status(200).json({
+    status: "success",
+    data: req.user,
+  });
 });
 
 /**
- * @desc    Update current user
+ * @desc    Update current user profile and address
  * @route   PUT /api/v1/auth/update-me
  * @access  Private
  */
 exports.updateMe = asyncHandler(async (req, res, next) => {
-  const filteredBody = {};
+  const user = req.user;
+
   const profileFields = ["firstName", "lastName", "phone", "dateOfBirth"];
   const addressFields = ["street", "city", "state", "country", "zipCode"];
 
   profileFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      filteredBody[`profile.${field}`] = req.body[field];
-    }
+    if (req.body[field] !== undefined) user.profile[field] = req.body[field];
   });
 
   addressFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      filteredBody[`address.${field}`] = req.body[field];
-    }
+    if (req.body[field] !== undefined) user.address[field] = req.body[field];
   });
 
-  const updatedUser = await User.findByIdAndUpdate(req.user._id, filteredBody, {
-    new: true,
-    runValidators: true,
-  }).select("-password");
+  await user.save({ validateBeforeSave: true });
 
-  res.status(200).json({ data: updatedUser });
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
 });
 
 /**
@@ -335,44 +274,34 @@ exports.updateMe = asyncHandler(async (req, res, next) => {
  * @access  Private
  */
 exports.updatePassword = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select("+password");
 
-  const isMatch = await bcrypt.compare(req.body.currentPassword, user.password);
-  if (!isMatch) {
+  if (!(await user.comparePassword(req.body.currentPassword)))
     return next(new ApiError("Your current password is incorrect", 401));
-  }
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(req.body.password, salt);
+  user.password = req.body.password;
+  user.passwordChangedAt = Date.now();
+  await user.save();
+  const token = createToken({ id: user._id, role: user.role });
+  await Email.passwordChanged(user);
+  user.password = undefined;
 
-  const updatedUser = await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      password: hashedPassword,
-      passwordChangedAt: Date.now(),
-    },
-    { new: true }
-  );
-
-  const token = createToken({ id: updatedUser._id, role: updatedUser.role });
-  await Email.passwordChanged(updatedUser);
-
-  delete updatedUser._doc.password;
-
-  res.status(200).json({ data: updatedUser, token });
+  res.status(200).json({ status: "success", data: user, token });
 });
 
 /**
- * @desc    Delete logged user (deactivate)
- * @route   DELETE /api/v1/auth/delete-me
+ * @desc    Deactivate logged user (Self-deactivation)
+ * @route   PATCH /api/v1/auth/delete-me
  * @access  Private
  */
 exports.deleteMe = asyncHandler(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.user._id, { isActive: false });
+  req.user.isActive = false;
+  await req.user.save({ validateBeforeSave: false });
   await Email.accountDeactivated(req.user);
 
-  res.status(204).json({
+  res.status(200).json({
     status: "success",
+    message: "Your account has been successfully deactivated.",
     data: null,
   });
 });

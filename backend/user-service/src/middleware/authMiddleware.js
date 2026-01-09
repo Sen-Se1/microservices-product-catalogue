@@ -7,50 +7,37 @@ const User = require("../models/userModel");
  * @desc   make sure the user is logged in
  */
 exports.protect = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
   let token;
-  if (
-    (req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")) ||
-    (req.headers.Authorization &&
-      req.headers.Authorization.startsWith("Bearer"))
-  ) {
-    token =
-      req.headers.authorization.split(" ")[1] ||
-      req.headers.Authorization.split(" ")[1];
+
+  if (authHeader?.startsWith("Bearer")) {
+    token = authHeader.split(" ")[1];
   }
-  if (!token) {
+
+  if (!token)
     return next(
       new ApiError(
         "You are not logged in, please log in to access this route.",
         401
       )
     );
-  }
+
   const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-  const currentUser = await User.findById(decoded.userId);
-  if (!currentUser) {
+  const currentUser = await User.findById(decoded.userId).select("-password");
+  if (!currentUser)
     return next(
-      new ApiError("The user associated with this token no longer exists.", 401)
+      new ApiError("The user belonging to this token no longer exists.", 401)
     );
-  }
 
-  if (!currentUser.isVerified) {
+  if (!currentUser.isVerified)
     return next(
-      new ApiError(
-        "Your account is not verified. Please verify your email.",
-        403
-      )
+      new ApiError("Please verify your account to access this route.", 403)
     );
-  }
 
-  if (!currentUser.isActive) {
+  if (!currentUser.isActive)
     return next(
-      new ApiError(
-        "Your account has been deactivated. Please contact support.",
-        403
-      )
+      new ApiError("This account is deactivated. Please contact support.", 403)
     );
-  }
 
   if (currentUser.passwordChangedAt) {
     const passChangedTimestamp = parseInt(
@@ -66,7 +53,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
       );
     }
   }
-  delete currentUser._doc.password;
+
   req.user = currentUser;
   next();
 });
@@ -93,7 +80,7 @@ exports.isProfileOwner = asyncHandler((req, res, next) => {
   if (req.user._id.toString() === req.params.id) {
     return next(
       new ApiError(
-        "You are not authorized to view or edit a profile that you do not own.",
+        "You are not authorized to view or edit your profile from here.",
         403
       )
     );

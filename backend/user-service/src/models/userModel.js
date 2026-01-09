@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -97,7 +98,26 @@ userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 
+/** 
+ * @access private 
+ * @desc Automatically hashes the password before it is saved to MongoDB.
+ */
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+/**
+ * @desc Validates a login attempt by comparing a plain text password to the hash.
+ * @param {string} candidatePassword - The raw password from the login request.
+ * @returns {Promise<boolean>} - Resolves to true if password matches.
+ */
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
 // Create model based on the schema
 const User = mongoose.model("User", userSchema);
-
 module.exports = User;
